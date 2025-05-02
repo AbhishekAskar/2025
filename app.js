@@ -1,29 +1,66 @@
 const http = require('http');
+const fs = require('fs')
 
 const server = http.createServer((req, res) => {
-  console.log("Server is Created");
 
-  res.setHeader('Content-Type', 'text/html');
-
-  if (req.url === '') {
-    res.statusCode = 200;
-    res.end("<h1>Hello World</h1>");
-  } else if (req.url === '/pizza') {
-    res.statusCode = 200;
-    res.end("<h1>This is your Pizza</h1>");
-  } else if (req.url === '/home') {
-    res.statusCode = 200;
-    res.end("<h1>Welcome Home</h1>");
-  } else if (req.url === '/about') {
-    res.statusCode = 200;
-    res.end("<h1>Welcome to About Us</h1>");
-  } else if (req.url === '/node') {
-    res.statusCode = 200;
-    res.end("<h1>Welcome to my Node Js project</h1>");
+  const url = req.url;
+  const method = req.method;
+  if (req.url === '/') {
+    res.setHeader('Content-Type', 'text/html');
+    res.end(
+      `
+        <form action="/message" method="POST">
+          <label>Name:</label>
+          <input type="text" name="username"></input>
+          <button type="submit">Add</button>
+        </form> 
+      `
+    );
   } else {
-    res.statusCode = 404;
-    res.end("<h1>Page not found</h1>");
+    if (req.url == '/message') {
+
+      res.setHeader('Content-type', 'text/html');
+
+      let body = [];
+      req.on('data', (chunks) => {
+        // console.log(chunks);
+        // console.log(chunks.toString());
+        // dataChunks.push(chunks);
+        // console.log(dataChunks);
+        body.push(chunks);
+      })
+
+      req.on('end', ()=>{
+        // let combinedBuffer = Buffer.concat(dataChunks);
+        // console.log(combinedBuffer.toString());
+        // let value= combinedBuffer.toString().split("=");
+        // console.log(value);
+        let buffer = Buffer.concat(body);
+        console.log(buffer);
+        let formData = buffer.toString();
+        console.log(formData);
+
+        const formValues = formData.split('=')[1];
+        fs.writeFile('formValues.txt', formValues, (err) =>{
+          res.statusCode = 302; //redirected
+          res.setHeader('Location', '/');
+          res.end();
+        });
+      })
+    }else{
+      if(req.url == '/read'){
+        //read from the file
+        fs.readFile('formValues.txt', (err, data)=>{
+          console.log(data.toString());
+          res.end(`
+              <h1>${data.toString()}</h1>
+            `);
+        });
+
+      }
+    }
   }
+
 });
 
 let port = 3000;
