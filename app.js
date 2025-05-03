@@ -1,69 +1,42 @@
 const http = require('http');
-const fs = require('fs')
+const fs = require('fs');
 
 const server = http.createServer((req, res) => {
-
   const url = req.url;
   const method = req.method;
-  if (req.url === '/') {
-    res.setHeader('Content-Type', 'text/html');
-    res.end(
-      `
+
+  if (url === '/') {
+    fs.readFile('formValues.txt', (err, data) => {
+      let savedData = data ? data.toString() : '';
+      res.setHeader('Content-Type', 'text/html');
+      res.end(`
+        <h1>${savedData ? savedData : ''}</h1>
         <form action="/message" method="POST">
           <label>Name:</label>
-          <input type="text" name="username"></input>
+          <input type="text" name="username">
           <button type="submit">Add</button>
         </form> 
-      `
-    );
-  } else {
-    if (req.url == '/message') {
+      `);
+    });
+  } else if (url === '/message' && method === 'POST') {
+    let body = [];
+    req.on('data', (chunk) => {
+      body.push(chunk);
+    });
 
-      res.setHeader('Content-type', 'text/html');
-
-      let body = [];
-      req.on('data', (chunks) => {
-        // console.log(chunks);
-        // console.log(chunks.toString());
-        // dataChunks.push(chunks);
-        // console.log(dataChunks);
-        body.push(chunks);
-      })
-
-      req.on('end', ()=>{
-        // let combinedBuffer = Buffer.concat(dataChunks);
-        // console.log(combinedBuffer.toString());
-        // let value= combinedBuffer.toString().split("=");
-        // console.log(value);
-        let buffer = Buffer.concat(body);
-        console.log(buffer);
-        let formData = buffer.toString();
-        console.log(formData);
-
-        const formValues = formData.split('=')[1];
-        fs.writeFile('formValues.txt', formValues, (err) =>{
-          res.statusCode = 302; //redirected
-          res.setHeader('Location', '/');
-          res.end();
-        });
-      })
-    }else{
-      if(req.url == '/read'){
-        //read from the file
-        fs.readFile('formValues.txt', (err, data)=>{
-          console.log(data.toString());
-          res.end(`
-              <h1>${data.toString()}</h1>
-            `);
-        });
-
-      }
-    }
+    req.on('end', () => {
+      let buffer = Buffer.concat(body);
+      let formData = buffer.toString();
+      let formValue = formData.split('=')[1];
+      fs.writeFile('formValues.txt', formValue, (err) => {
+        res.statusCode = 302;
+        res.setHeader('Location', '/');
+        res.end();
+      });
+    });
   }
-
 });
 
-let port = 3000;
-server.listen(port, () => {
-  console.log("Server is Running at http://localhost:" + port);
+server.listen(3000, () => {
+  console.log("Server is Running at http://localhost:3000");
 });
